@@ -127,4 +127,9 @@ MEDIA_ROOT = [BASE_DIR, 'media']
 
 
 # Configuração do Banco de Grafos (Neo4j)
-NEOMODEL_NEO4J_BOLT_URL = 'neo4j+s://seu_usuario:sua_senha@seu-id.databases.neo4j.io'
+#NEOMODEL_NEO4J_BOLT_URL = 'neo4j+s://ff17ed1a:X6LmQeaAQtthJI2EIVlv6njClXSW3Gbxa5-nqL_DWkI@ff17ed1a.databases.neo4j.io'  - deu erro
+
+# NEOMODEL_NEO4J_BOLT_URL = 'bolt+s://ff17ed1a:senha@ff17ed1a.databases.neo4j.io:7687' erro tbm
+
+# Configuração de ligação ao Neo4j (Sandbox)
+NEOMODEL_NEO4J_BOLT_URL = 'bolt://neo4j:tips-thirteen-densities@3.227.230.189:7687'
