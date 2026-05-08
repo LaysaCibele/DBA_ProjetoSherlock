@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_neomodel',
     'core',
+    'users',
 ]
 
 MIDDLEWARE = [

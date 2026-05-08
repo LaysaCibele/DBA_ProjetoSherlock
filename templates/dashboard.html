@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -13,8 +14,9 @@
     <!-- vis.js for Network Graph -->
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     
-    <link rel="stylesheet" href="../static/css/style.css">
-    <link rel="stylesheet" href="../static/css/dashboard.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
 </head>
 <body>
 
@@ -302,16 +304,15 @@
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
-    <script src="../static/js/toast.js"></script>
-    <script src="../static/js/ui.js"></script>
-    <script src="../static/js/customDialogs.js"></script>
+    <script src="{% static 'js/toast.js' %}"></script>
+    <script src="{% static 'js/ui.js' %}"></script>
+    <script src="{% static 'js/customDialogs.js' %}"></script>
 
-    <script src="../static/js/graphEngine.js"></script>
+    <script src="{% static 'js/graphEngine.js' %}"></script>
 
-    <script src="../static/js/caseManager.js"></script>
-    <script src="../static/js/wizard.js"></script>
-    <script src="../static/js/elementModal.js"></script>
-    <script src="../static/js/dashboard.js"></script>
+    <script src="{% static 'js/caseManager.js' %}"></script>
+    <script src="{% static 'js/wizard.js' %}"></script>
+    <script src="{% static 'js/elementModal.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
 </body>
 </html>
-

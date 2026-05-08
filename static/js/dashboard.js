@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (displayDistrito) displayDistrito.textContent = user.distrito || 'Sem Lotação';
         storageKey = `${user.matricula}_meusCasos`;
     } else {
-        window.location.href = 'index.html';
+        window.location.href = "/";
         return; // Stop execution
     }
 
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             meusCasos = []; // Limpa memória
             currentCaseIndex = null;
             localStorage.removeItem('currentUser');
-            window.location.href = 'index.html';
+            window.location.href = "/";
         });
     }
 

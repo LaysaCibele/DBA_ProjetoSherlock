@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('currentUser', JSON.stringify(usuariosCadastrados[matricula]));
                 
                 // Redireciona para o dashboard
-                window.location.href = 'dashboard.html';
+                window.location.href = "/dashboard/";
             } else {
                 if (errorMsgLogin) {
                     errorMsgLogin.textContent = 'Matrícula ou senha incorretos.';
