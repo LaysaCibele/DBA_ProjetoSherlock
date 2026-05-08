@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro Criminal - Login</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="card login-card">
+            <div class="header-section">
+                <div class="icon-wrapper">
+                    <i class="ph ph-shield-check"></i>
+                </div>
+                <h1>Sistema de Registro Criminal</h1>
+                <p class="subtitle">Acesso Restrito</p>
+            </div>
+
+            <div id="container-login" class="fade-in">
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="matricula">Matrícula Funcional</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-identification-card"></i>
+                            <input type="text" id="matricula" placeholder="Digite sua matrícula" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="senha">Senha</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-lock-key"></i>
+                            <input type="password" id="senha" placeholder="Digite sua senha" required>
+                            <button type="button" class="toggle-password" aria-label="Mostrar senha">
+                                <i class="ph ph-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p id="error-message" style="color: #ef4444; font-size: 14px; text-align: center; display: none; margin-bottom: 16px;">Matrícula ou senha incorretos.</p>
+
+                    <button type="submit" class="btn-primary">
+                        <span>Acessar Sistema</span>
+                        <i class="ph ph-sign-in"></i>
+                    </button>
+
+                    <div style="text-align: center; margin-top: 16px;">
+                        <a href="#" id="link-cadastro" class="toggle-link">Não tem conta? Cadastre-se aqui</a>
+                    </div>
+                </form>
+            </div>
+
+            <div id="container-cadastro" class="fade-in" style="display: none;">
+                <form id="cadastro-form">
+                    <div class="input-group">
+                        <label for="cad-nome">Nome Completo</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-user"></i>
+                            <input type="text" id="cad-nome" placeholder="Seu nome" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cad-matricula">Matrícula Funcional</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-identification-card"></i>
+                            <input type="text" id="cad-matricula" placeholder="Crie uma matrícula" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cad-senha">Senha</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-lock-key"></i>
+                            <input type="password" id="cad-senha" placeholder="Crie uma senha" required>
+                            <button type="button" class="toggle-password" aria-label="Mostrar senha">
+                                <i class="ph ph-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cad-distrito">Distrito Policial</label>
+                        <div class="input-wrapper">
+                            <i class="ph ph-buildings"></i>
+                            <select id="cad-distrito" required>
+                                <option value="" disabled selected>Selecione o distrito</option>
+                                <option value="1">1º DP - Centro</option>
+                                <option value="2">2º DP - Zona Sul</option>
+                                <option value="3">3º DP - Zona Norte</option>
+                                <option value="4">4º DP - Zona Leste</option>
+                                <option value="5">5º DP - Zona Oeste</option>
+                            </select>
+                            <i class="ph ph-caret-down select-arrow"></i>
+                        </div>
+                    </div>
+
+                    <p id="error-message-cad" style="color: #ef4444; font-size: 14px; text-align: center; display: none; margin-bottom: 16px;">Essa matrícula já existe.</p>
+
+                    <button type="submit" class="btn-primary">
+                        <span>Finalizar Cadastro</span>
+                        <i class="ph ph-user-plus"></i>
+                    </button>
+
+                    <div style="text-align: center; margin-top: 16px;">
+                        <a href="#" id="link-login" class="toggle-link">Já tem conta? Faça login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="toast.js"></script>
+    <script src="ui.js"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>
+

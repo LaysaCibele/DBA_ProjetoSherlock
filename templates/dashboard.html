@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Casos Criminais</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- vis.js for Network Graph -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-titles">
+                <h1>Central de Casos Criminais</h1>
+                <h2>Análise e Investigação</h2>
+            </div>
+            
+            <div class="header-actions">
+                <div class="officer-info">
+                    <div class="avatar">
+                        <i class="ph ph-user"></i>
+                    </div>
+                    <div>
+                        <span class="officer-name" id="display-name">Carregando...</span>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span class="badge">Matrícula: <span id="display-matricula">Carregando...</span></span>
+                            <span id="display-distrito" class="badge-distrito">Carregando...</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn-secondary">
+                    <i class="ph ph-sign-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Controls (Tabs + Search/Add) -->
+        <div class="dashboard-controls">
+            <div class="tabs" style="display: none;">
+                <!-- Abas removidas em favor da navegação Drill-Down -->
+            </div>
+            <div class="actions">
+                <div class="search-box">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="Buscar casos, suspeitos...">
+                </div>
+                <button id="btn-novo-caso" class="btn-primary">
+                    <i class="ph ph-plus"></i> <span id="btn-novo-text">Novo Caso</span>
+                </button>
+            </div>
+        </div>
+
+        <main class="dashboard-main">
+            <!-- VIEW: Grade de Casos (Home) -->
+            <div id="view-home" class="view-section active">
+                <div class="cases-grid" id="cases-grid-container">
+                    <!-- Populated via caseManager.js -->
+                </div>
+            </div>
+
+            <!-- VIEW: Grafo de Caso Específico -->
+            <div id="view-graph" class="view-section">
+                <div style="margin-bottom: 16px; display: flex; gap: 12px;">
+                    <button id="btn-voltar-home" class="btn-secondary">
+                        <i class="ph ph-arrow-left"></i> Voltar para Lista de Casos
+                    </button>
+                    <button id="btn-add-edge" class="btn-primary">
+                        <i class="ph ph-link"></i> Criar Nova Conexão
+                    </button>
+                </div>
+                <div class="graph-layout">
+                    <div class="graph-container">
+                        <div id="network-graph"></div>
+                    </div>
+                    <div class="graph-sidebar">
+                        <div class="legend-card">
+                            <h3>Legenda do Caso</h3>
+                            <ul class="legend-list">
+                                <li><span class="legend-color color-case"></span> Casos (Laranja)</li>
+                                <li><span class="legend-color color-suspect"></span> Suspeitos (Azul)</li>
+                                <li><span class="legend-color color-location"></span> Locais (Verde)</li>
+                                <li><span class="legend-color color-vehicle"></span> Veículos (Roxo)</li>
+                                <li><span class="legend-color color-weapon"></span> Armas (Vermelho)</li>
+                            </ul>
+                        </div>
+                        
+                        <div id="details-inspector" class="legend-card" style="margin-top: 16px;">
+                            <h3>Detalhes do Elemento</h3>
+                            <div id="inspector-content">
+                                <p style="color: var(--text-muted); text-align: center; padding: 16px 0;">Selecione um elemento no grafo para ver e editar seus detalhes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Cadastro Wizard -->
+    <div id="cadastro-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Registro de Cena de Crime</h2>
+                <button id="close-modal" class="btn-close"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="wizard-progress">
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-steps">
+                    <span class="step active" data-step="1">1. Local</span>
+                    <span class="step" data-step="2">2. Crime</span>
+                    <span class="step" data-step="3">3. Pessoa</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Passo 1: Local -->
+                <div id="step-1" class="wizard-step active">
+                    <div class="form-group">
+                        <label for="local-id">ID do Local (Opcional)</label>
+                        <input type="number" id="local-id" class="form-control" placeholder="Automático se vazio">
+                    </div>
+                    <div class="form-group">
+                        <label for="local-endereco">Endereço</label>
+                        <input type="text" id="local-endereco" class="form-control" placeholder="Endereço">
+                    </div>
+                    <div class="form-group">
+                        <label for="local-nome">Nome *</label>
+                        <input type="text" id="local-nome" class="form-control" placeholder="Nome do Local (ex: Banco)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="local-tipo">Tipo</label>
+                        <input type="text" id="local-tipo" class="form-control" placeholder="Comercial, Residencial...">
+                    </div>
+                </div>
+
+                <!-- Passo 2: Crime -->
+                <div id="step-2" class="wizard-step" style="display: none;">
+                    <div class="form-group">
+                        <label for="crime-id">ID do Crime (Nó - Opcional)</label>
+                        <input type="number" id="crime-id" class="form-control" placeholder="Automático se vazio">
+                    </div>
+                    <div class="form-group">
+                        <label for="crime-data">Data</label>
+                        <input type="date" id="crime-data" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="crime-id_crime">ID_Crime *</label>
+                        <input type="text" id="crime-id_crime" class="form-control" placeholder="Boletim/Número" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="crime-tipo">Tipo</label>
+                        <input type="text" id="crime-tipo" class="form-control" placeholder="Homicídio, Roubo...">
+                    </div>
+                    <div class="form-group">
+                        <label for="crime-titulo">Título *</label>
+                        <input type="text" id="crime-titulo" class="form-control" placeholder="Título do Caso" required>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Pessoa -->
+                <div id="step-3" class="wizard-step" style="display: none;">
+                    <div class="form-group">
+                        <label for="pessoa-id">ID da Pessoa (Nó - Opcional)</label>
+                        <input type="number" id="pessoa-id" class="form-control" placeholder="Automático se vazio">
+                    </div>
+                    <div class="form-group">
+                        <label for="pessoa-cpf">CPF</label>
+                        <input type="text" id="pessoa-cpf" class="form-control" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group">
+                        <label for="pessoa-funcao">Função</label>
+                        <input type="text" id="pessoa-funcao" class="form-control" placeholder="Suspeito, Testemunha...">
+                    </div>
+                    <div class="form-group">
+                        <label for="pessoa-nome">Nome *</label>
+                        <input type="text" id="pessoa-nome" class="form-control" placeholder="Nome Completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pessoa-status">Status</label>
+                        <input type="text" id="pessoa-status" class="form-control" placeholder="Foragido, Preso...">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer wizard-footer">
+                <button id="btn-cancelar" class="btn-secondary">Cancelar</button>
+                <div class="spacer" style="flex-grow: 1;"></div>
+                <button id="btn-voltar" class="btn-secondary" style="display: none;">Voltar</button>
+                <button id="btn-proximo" class="btn-primary">Próximo</button>
+                <button id="btn-finalizar" class="btn-success" style="display: none;">Finalizar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div id="detalhes-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Especificações do Caso</h2>
+                <button id="close-detalhes" class="btn-close"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body" id="detalhes-body">
+                <!-- Preenchido via JS -->
+            </div>
+            <div class="modal-footer">
+                <button id="btn-fechar-detalhes" class="btn-secondary">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Único (Adicionar Elemento ao Grafo) -->
+    <div id="modal-add-elemento" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Adicionar Novo Elemento</h2>
+                <button id="close-add-elemento" class="btn-close"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="select-tipo-elemento">Tipo de Elemento</label>
+                    <select id="select-tipo-elemento" class="form-control">
+                        <option value="pessoa">Pessoa / Suspeito</option>
+                        <option value="local">Local</option>
+                        <option value="veiculo">Veículo</option>
+                        <option value="arma">Arma</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="add-elemento-id">ID do Nó (Opcional)</label>
+                    <input type="number" id="add-elemento-id" class="form-control" placeholder="Automático se vazio">
+                </div>
+                
+                <div id="dynamic-fields-container" style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                    <!-- Campos renderizados via JS -->
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="btn-cancelar-elemento" class="btn-secondary">Cancelar</button>
+                <div class="spacer" style="flex-grow: 1;"></div>
+                <button id="btn-salvar-elemento" class="btn-success">Adicionar Elemento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Prompt Customizado -->
+    <div id="modal-prompt-custom" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="prompt-title">Título</h2>
+                <button id="prompt-close" class="btn-close"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="prompt-message" style="margin-bottom: 16px; font-size: 14px; color: var(--text-muted);"></p>
+                <div class="form-group">
+                    <input type="text" id="prompt-input" class="form-control" placeholder="Digite aqui...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="prompt-cancel" class="btn-secondary">Cancelar</button>
+                <button id="prompt-confirm" class="btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirm Customizado -->
+    <div id="modal-confirm-custom" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="confirm-title">Confirmar Ação</h2>
+                <button id="confirm-close" class="btn-close"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="font-size: 15px; line-height: 1.5; color: var(--text-main);"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-cancel" class="btn-secondary">Cancelar</button>
+                <button id="confirm-ok" class="btn-primary" style="background-color: var(--danger);">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="toast.js"></script>
+    <script src="ui.js"></script>
+    <script src="customDialogs.js"></script>
+
+    <script src="graphEngine.js"></script>
+
+    <script src="caseManager.js"></script>
+    <script src="wizard.js"></script>
+    <script src="elementModal.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
+
