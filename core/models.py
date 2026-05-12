@@ -2,6 +2,38 @@ from django.db import models
 
 from neomodel import StructuredNode, StringProperty, DateProperty, RelationshipTo
 
+
+class LocalRelacional(models.Model):
+    nome = models.CharField(max_length=255)
+    endereco = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nome
+    
+class PessoaRelacional(models.Model):
+    nome = models.CharField(max_length=255)
+    cpf = models.CharField(max_length=14, unique=True)
+    funcao = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.nome
+
+class CrimeRelacional(models.Model):
+    titulo = models.CharField(max_length=255)
+    tipo = models.CharField(max_length=100)
+    data = models.DateField()
+    
+    def __str__(self):
+        return self.titulo
+
+class CasoRelacional(models.Model):
+    # Este model é o que o dashboard.js vai listar 
+    crime = models.ForeignKey(CrimeRelacional, on_delete=models.CASCADE)
+    pessoa = models.ForeignKey(PessoaRelacional, on_delete=models.CASCADE)
+    local = models.ForeignKey(LocalRelacional, on_delete=models.CASCADE)
+    data_registro = models.DateTimeField(auto_now_add=True)
+    
+    
 # --- 1. LOCAIS E OBJETOS ---
 class Local(StructuredNode):
     nome = StringProperty(required=True)

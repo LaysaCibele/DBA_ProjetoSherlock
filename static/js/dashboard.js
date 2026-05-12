@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return (
                     caso.crime.titulo.toLowerCase().includes(term) ||
                     caso.pessoa.nome.toLowerCase().includes(term) ||
-                    caso.crime.id_crime.toLowerCase().includes(term)
+                    caso.id.toLowerCase().includes(term)
                 );
 
             });
