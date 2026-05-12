@@ -23,21 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             const input = btn.previousElementSibling;
             const icon = btn.querySelector('i');
-            
             const isPassword = input.type === 'password';
             input.type = isPassword ? 'text' : 'password';
-            
-            if (isPassword) {
-                icon.classList.remove('ph-eye');
-                icon.classList.add('ph-eye-slash');
-            } else {
-                icon.classList.remove('ph-eye-slash');
-                icon.classList.add('ph-eye');
-            }
+            icon.classList.toggle('ph-eye');
+            icon.classList.toggle('ph-eye-slash');
         });
     });
 
-    // Alternar Telas
     function showCadastro(e) {
         if (e) e.preventDefault();
         containerLogin.style.display = 'none';
@@ -57,87 +49,75 @@ document.addEventListener('DOMContentLoaded', () => {
     if (linkCadastro) linkCadastro.addEventListener('click', showCadastro);
     if (linkLogin) linkLogin.addEventListener('click', showLogin);
 
-    // Inicializar Banco de Dados
-    const defaultPoliciais = {
-        '1234': { nome: 'Oficial Silva', senha: 'senha', matricula: '1234', distrito: '1º DP - Centro' },
-        '5678': { nome: 'Oficial Costa', senha: 'senha', matricula: '5678', distrito: '2º DP - Zona Sul' }
-    };
-
-    let usuariosCadastrados = JSON.parse(localStorage.getItem('usuariosCadastrados'));
-    if (!usuariosCadastrados) {
-        usuariosCadastrados = defaultPoliciais;
-        localStorage.setItem('usuariosCadastrados', JSON.stringify(usuariosCadastrados));
-    }
-
-    // Handle Cadastro
+    // --- INTEGRAÇÃO COM DJANGO (CADASTRO) ---
     if (cadastroForm) {
-        cadastroForm.addEventListener('submit', (e) => {
+        cadastroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // 1. Captura
-            const nome = cadNomeInput.value.trim();
-            const matricula = cadMatriculaInput.value.trim();
-            const senha = cadSenhaInput.value;
-            const distrito = cadDistritoInput.options[cadDistritoInput.selectedIndex] ? cadDistritoInput.options[cadDistritoInput.selectedIndex].text : '';
-
-            // 2. Validação
-            if (!nome || !matricula || !senha || !cadDistritoInput.value) {
-                alert('Erro: Verifique os campos ou matrícula já existente');
-                return;
-            }
-
-            // 3. Verificação de Duplicado
-            if (usuariosCadastrados[matricula]) {
-                if (errorMsgCad) {
-                    errorMsgCad.textContent = 'Erro: Verifique os campos ou matrícula já existente';
-                    errorMsgCad.style.display = 'block';
-                }
-                alert('Erro: Verifique os campos ou matrícula já existente');
-                return;
-            }
-
-            // 4. Gravação Correta
-            usuariosCadastrados[matricula] = {
-                nome: nome,
-                matricula: matricula,
-                senha: senha,
-                distrito: distrito
+            const payload = {
+                nome: cadNomeInput.value.trim(),
+                matricula: cadMatriculaInput.value.trim(),
+                senha: cadSenhaInput.value,
+                distrito: cadDistritoInput.options[cadDistritoInput.selectedIndex]?.text || ''
             };
 
-            localStorage.setItem('usuariosCadastrados', JSON.stringify(usuariosCadastrados));
-            
-            // 5. Ação Pós-Sucesso
-            alert('Cadastro realizado com sucesso!');
-            showLogin();
-            cadastroForm.reset();
-        });
-    }
+            try {
+                const response = await fetch('/users/cadastrar/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-    // Handle Login
-    if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const matricula = matriculaInput.value;
-            const senha = senhaInput.value;
-            
-            // Verifica na base persistida
-            if (usuariosCadastrados[matricula] && usuariosCadastrados[matricula].senha === senha) {
-                if (errorMsgLogin) errorMsgLogin.style.display = 'none';
-                
-                // Salva as informações do usuário atual logado
-                localStorage.setItem('currentUser', JSON.stringify(usuariosCadastrados[matricula]));
-                
-                // Redireciona para o dashboard
-                window.location.href = "/dashboard/";
-            } else {
-                if (errorMsgLogin) {
-                    errorMsgLogin.textContent = 'Matrícula ou senha incorretos.';
-                    errorMsgLogin.style.display = 'block';
+                const data = await response.json();
+
+                if (data.success) {
+                    UI.showNotification('Cadastro realizado com sucesso!', 'success');
+                    showLogin();
+                } else {
+                    if (errorMsgCad) {
+                        errorMsgCad.textContent = data.message || 'Erro ao cadastrar.';
+                        errorMsgCad.style.display = 'block';
+                    }
                 }
-                UI.showNotification('Matrícula ou senha incorretos!', 'error');
+            } catch (error) {
+                UI.showNotification('Erro de conexão com o servidor.', 'error');
             }
         });
     }
 
+    // --- INTEGRAÇÃO COM DJANGO (LOGIN) ---
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                matricula: matriculaInput.value,
+                senha: senhaInput.value
+            };
+
+            try {
+                const response = await fetch('/users/login/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mantemos o currentUser no localStorage para o Dashboard exibir o nome rápido
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    window.location.href = "/dashboard/";
+                } else {
+                    if (errorMsgLogin) {
+                        errorMsgLogin.textContent = data.message || 'Matrícula ou senha incorretos.';
+                        errorMsgLogin.style.display = 'block';
+                    }
+                    UI.showNotification('Falha no acesso!', 'error');
+                }
+            } catch (error) {
+                UI.showNotification('Erro ao conectar ao servidor.', 'error');
+            }
+        });
+    }
 });

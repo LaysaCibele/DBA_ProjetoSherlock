@@ -1,5 +1,4 @@
-// elementModal.js
-
+// elementModal.js - Versão Integrada com Django
 const ElementModal = (function() {
     let onSaveCallback = null;
 
@@ -72,39 +71,22 @@ const ElementModal = (function() {
         btnClose.addEventListener('click', closeModal);
         btnCancelar.addEventListener('click', closeModal);
 
-        btnSalvar.addEventListener('click', () => {
-            // Bloquear botão
+        // --- INTEGRAÇÃO COM DJANGO ---
+        btnSalvar.addEventListener('click', async () => {
             btnSalvar.disabled = true;
 
             const tipo = selectTipo.value;
-            let id = document.getElementById('add-elemento-id').value;
+            const elementoData = {};
 
-            if (!id) {
-                id = Date.now() + Math.floor(Math.random() * 1000);
-            } else {
-                id = parseInt(id);
-            }
-
-            const elemento = {
-                id: id,
-                tipo: tipo
-            };
-
-            // Coletar dados dinâmicos
+            // Coletar dados dos campos dinâmicos
             const inputs = document.querySelectorAll('#dynamic-fields-container .dynamic-input');
             let hasError = false;
 
             inputs.forEach(input => {
                 const key = input.getAttribute('data-key');
                 const value = input.value.trim();
-                
-                if (input.hasAttribute('required') && !value) {
-                    hasError = true;
-                }
-                
-                if (value) {
-                    elemento[key] = value;
-                }
+                if (input.hasAttribute('required') && !value) hasError = true;
+                if (value) elementoData[key] = value;
             });
 
             if (hasError) {
@@ -113,22 +95,44 @@ const ElementModal = (function() {
                 return;
             }
 
-            // Lógica do Label Principal (para o Vis.js)
-            if (tipo === 'pessoa') {
-                elemento.nome = elemento.nome || 'Desconhecido';
-            } else if (tipo === 'veiculo') {
-                elemento.nome = elemento.placa || 'Sem Placa';
-            } else if (tipo === 'arma') {
-                elemento.nome = [elemento.tipo_arma, elemento.calibre].filter(Boolean).join(' ') || 'Arma Branca';
-            } else if (tipo === 'local') {
-                elemento.nome = elemento.nome_local || 'Local Não Informado';
-            }
+            // Preparar o payload para o Django
+            // Usamos window.currentCaseId que deve ser definido no dashboard.js ao abrir o grafo
+            const payload = {
+                caso_id: window.currentCaseId,
+                tipo: tipo,
+                descricao: elementoData.nome || elementoData.modelo || elementoData.tipo_arma || elementoData.nome_local || "Elemento extra",
+                serial: elementoData.placa || elementoData.numeracao || elementoData.cpf || elementoData.endereco || ""
+            };
 
-            if (onSaveCallback) {
-                onSaveCallback(elemento);
-            }
+            try {
+                const response = await fetch('/adicionar-elemento/', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': UI.getCookie('csrftoken') // Se precisar de CSRF real futuramente
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-            closeModal();
+                const data = await response.json();
+
+                if (data.success) {
+                    UI.showNotification('Elemento salvo no banco SQLite!', 'success');
+                    
+                    // Callback para atualizar o grafo visualmente no GraphEngine
+                    if (onSaveCallback) {
+                        onSaveCallback({ ...elementoData, id: data.id, tipo: tipo });
+                    }
+                    closeModal();
+                } else {
+                    UI.showNotification('Erro: ' + data.message, 'error');
+                    btnSalvar.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erro ao salvar elemento:', error);
+                UI.showNotification('Erro de conexão com o servidor.', 'error');
+                btnSalvar.disabled = false;
+            }
         });
     }
 
@@ -136,8 +140,5 @@ const ElementModal = (function() {
         onSaveCallback = callback;
     }
 
-    return {
-        init,
-        onSave
-    };
+    return { init, onSave };
 })();

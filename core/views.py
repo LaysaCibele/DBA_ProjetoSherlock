@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import (CrimeRelacional, PessoaRelacional, LocalRelacional, CasoRelacional,
-    Crime, Pessoa, Local)
+    Crime, Pessoa, Local, ObjetoRelacional)
 
 def index(request):
     return render(request, 'index.html')
@@ -85,3 +85,29 @@ def listar_casos(request):
         return JsonResponse(data, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+    
+    
+@csrf_exempt
+def adicionar_elemento(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            caso_id = data.get('caso_id')
+            caso = CasoRelacional.objects.get(id=caso_id)
+
+            novo_objeto = ObjetoRelacional.objects.create(
+                tipo=data['tipo'],
+                descricao=data['descricao'],
+                serial=data.get('serial', ''),
+                caso=caso
+            )
+
+            return JsonResponse({
+                'success': True, 
+                'id': novo_objeto.id, 
+                'message': 'Elemento adicionado com sucesso!'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)

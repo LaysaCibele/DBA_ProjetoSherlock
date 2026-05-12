@@ -68,3 +68,14 @@ class Pessoa(StructuredNode):
     foi_vitima_de = RelationshipTo(Crime, 'FOI_VITIMA_DE')
     usou = RelationshipTo(Objeto, 'USOU')
     conhece = RelationshipTo('Pessoa', 'CONHECE')
+    
+    
+class ObjetoRelacional(models.Model):
+    tipo = models.CharField(max_length=100) 
+    descricao = models.TextField()
+    serial = models.CharField(max_length=255, blank=True, null=True) # Placa ou numeração
+    # Vinculamos ao Caso para saber a qual investigação esse objeto pertence
+    caso = models.ForeignKey(CasoRelacional, on_delete=models.CASCADE, related_name='objetos')
+
+    def __str__(self):
+        return f"{self.tipo} - {self.descricao[:20]}"
