@@ -70,13 +70,17 @@ def listar_casos(request):
             elementos = list(c.objetos.all())
             extras = []
             for obj in elementos:
-                extras.append({
+                extra_data = obj.dados_extras if obj.dados_extras else {}
+                extra_item = {
                     "id": f"extra_{obj.tipo}_{obj.id}",
                     "tipo": obj.tipo,
                     "nome": obj.descricao,
                     "x": None,
                     "y": None
-                })
+                }
+                # Merge dynamic fields from JSON
+                extra_item.update(extra_data)
+                extras.append(extra_item)
 
             data.append({
                 "id": c.id,
@@ -116,6 +120,7 @@ def adicionar_elemento(request):
                 tipo=data['tipo'],
                 descricao=data['descricao'],
                 serial=data.get('serial', ''),
+                dados_extras=data.get('dados', {}),
                 caso=caso
             )
 

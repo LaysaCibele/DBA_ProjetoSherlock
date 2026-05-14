@@ -101,7 +101,8 @@ const ElementModal = (function() {
                 caso_id: window.currentCaseId,
                 tipo: tipo,
                 descricao: elementoData.nome || elementoData.modelo || elementoData.tipo_arma || elementoData.nome_local || "Elemento extra",
-                serial: elementoData.placa || elementoData.numeracao || elementoData.cpf || elementoData.endereco || ""
+                serial: elementoData.placa || elementoData.numeracao || elementoData.cpf || elementoData.endereco || "",
+                dados: elementoData
             };
 
             try {

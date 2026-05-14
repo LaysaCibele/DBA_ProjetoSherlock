@@ -74,6 +74,8 @@ class ObjetoRelacional(models.Model):
     tipo = models.CharField(max_length=100) 
     descricao = models.TextField()
     serial = models.CharField(max_length=255, blank=True, null=True) # Placa ou numeração
+    # JSONField para armazenar todas as características extras (cpf, status, placa, etc)
+    dados_extras = models.JSONField(blank=True, null=True, default=dict)
     # Vinculamos ao Caso para saber a qual investigação esse objeto pertence
     caso = models.ForeignKey(CasoRelacional, on_delete=models.CASCADE, related_name='objetos')
 

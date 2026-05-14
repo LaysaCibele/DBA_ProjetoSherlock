@@ -344,7 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     tipo: elementoSalvo.tipo,
                     nome: nodeData.label,
                     x: null,
-                    y: null
+                    y: null,
+                    ...elementoSalvo
                 });
 
                 if (typeof GraphEngine !== 'undefined') {
