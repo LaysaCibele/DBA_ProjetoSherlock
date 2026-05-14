@@ -158,7 +158,7 @@ const CaseManager = (function() {
                     elementData[key] = newValue; // Update reference directly
                     
                     if (onDataUpdatedCallback) {
-                        onDataUpdatedCallback(); // Notify coordinator
+                        onDataUpdatedCallback(elementData); // Notify coordinator with data
                     }
                     
                     // Re-render inspector to go back to read-only mode

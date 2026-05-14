@@ -132,3 +132,89 @@ def adicionar_elemento(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False}, status=405)
+
+
+@csrf_exempt
+def atualizar_elemento(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            element_id = data.get('id')
+            dados = data.get('dados', {})
+
+            if not element_id:
+                return JsonResponse({'success': False, 'message': 'ID não fornecido'}, status=400)
+
+            if element_id.startswith('extra_'):
+                # Exemplo: extra_pessoa_5 -> ID é 5
+                obj_id = element_id.split('_')[-1]
+                obj = ObjetoRelacional.objects.get(id=obj_id)
+                
+                # Se mudaram o nome/descrição, atualiza a coluna padrão também
+                if 'nome' in dados:
+                    obj.descricao = dados['nome']
+                
+                # O restante vai pro dados_extras
+                if not obj.dados_extras:
+                    obj.dados_extras = {}
+                    
+                for key, value in dados.items():
+                    if key not in ['id', 'x', 'y', 'tipo']:
+                        obj.dados_extras[key] = value
+                        
+                obj.save()
+                return JsonResponse({'success': True, 'message': 'Elemento atualizado'})
+
+            elif element_id.startswith('crime_'):
+                obj_id = element_id.split('_')[-1]
+                obj = CrimeRelacional.objects.get(id=obj_id)
+                if 'titulo' in dados: obj.titulo = dados['titulo']
+                if 'tipo' in dados: obj.tipo = dados['tipo']
+                if 'data' in dados: obj.data = dados['data']
+                obj.save()
+                return JsonResponse({'success': True, 'message': 'Crime atualizado'})
+
+            elif element_id.startswith('pessoa_'):
+                obj_id = element_id.split('_')[-1]
+                obj = PessoaRelacional.objects.get(id=obj_id)
+                if 'nome' in dados: obj.nome = dados['nome']
+                if 'funcao' in dados: obj.funcao = dados['funcao']
+                obj.save()
+                return JsonResponse({'success': True, 'message': 'Pessoa atualizada'})
+
+            elif element_id.startswith('local_'):
+                obj_id = element_id.split('_')[-1]
+                obj = LocalRelacional.objects.get(id=obj_id)
+                if 'nome' in dados: obj.nome = dados['nome']
+                obj.save()
+                return JsonResponse({'success': True, 'message': 'Local atualizado'})
+
+            return JsonResponse({'success': False, 'message': 'Tipo de ID desconhecido'}, status=400)
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)
+
+
+@csrf_exempt
+def remover_elemento(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            element_id = data.get('id')
+
+            if not element_id:
+                return JsonResponse({'success': False, 'message': 'ID não fornecido'}, status=400)
+
+            # Só permitimos excluir elementos extras (ObjetoRelacional) 
+            # para não corromper o Caso principal
+            if element_id.startswith('extra_'):
+                obj_id = element_id.split('_')[-1]
+                ObjetoRelacional.objects.filter(id=obj_id).delete()
+                return JsonResponse({'success': True, 'message': 'Elemento extra removido'})
+            else:
+                return JsonResponse({'success': False, 'message': 'Não é possível remover elementos principais do caso por aqui. Exclua o caso inteiro.'}, status=400)
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)

@@ -272,6 +272,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
         });
 
+        // Atualizar informações do elemento
+        if (typeof CaseManager.onDataUpdated !== 'undefined') {
+            CaseManager.onDataUpdated(async (updatedData) => {
+                try {
+                    const response = await fetch('/atualizar-elemento/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: updatedData.id,
+                            dados: updatedData
+                        })
+                    });
+                    const resData = await response.json();
+                    
+                    if (resData.success) {
+                        UI.showNotification('Elemento atualizado!', 'success');
+                        
+                        // Atualizar label no grafo se for nome ou descricao
+                        if (updatedData.nome) {
+                            const caso = meusCasos[currentCaseIndex];
+                            if (typeof GraphEngine !== 'undefined') {
+                                GraphEngine.renderGraphForCase(caso);
+                            }
+                        }
+                    } else {
+                        UI.showNotification(resData.message || 'Erro ao atualizar', 'error');
+                    }
+                } catch (error) {
+                    UI.showNotification(`Erro na requisição: ${error.message}`, 'error');
+                }
+            });
+        }
+
+        // Remover elemento do caso
+        if (typeof CaseManager.onRemoveElement !== 'undefined') {
+            CaseManager.onRemoveElement(async (elementId) => {
+                try {
+                    const response = await fetch('/remover-elemento/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: elementId })
+                    });
+                    const resData = await response.json();
+                    
+                    if (resData.success) {
+                        UI.showNotification('Elemento removido!', 'success');
+                        
+                        // Limpa o inspetor
+                        if (typeof CaseManager.showInspector !== 'undefined') {
+                            CaseManager.showInspector(null);
+                        }
+                        
+                        // Remove do estado local
+                        const caso = meusCasos[currentCaseIndex];
+                        if (caso && caso.elementosExtras) {
+                            caso.elementosExtras = caso.elementosExtras.filter(e => e.id !== elementId);
+                        }
+                        
+                        // Atualiza grafo
+                        if (typeof GraphEngine !== 'undefined') {
+                            GraphEngine.renderGraphForCase(caso);
+                        }
+                    } else {
+                        UI.showNotification(resData.message || 'Erro ao remover', 'error');
+                    }
+                } catch (error) {
+                    UI.showNotification(`Erro na requisição: ${error.message}`, 'error');
+                }
+            });
+        }
+
     }
 
     // ---- 7. Inicialização do GraphEngine ----

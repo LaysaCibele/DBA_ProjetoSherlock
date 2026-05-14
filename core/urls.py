@@ -10,5 +10,7 @@ urlpatterns = [
     path('listar-casos/', views.listar_casos, name='listar-casos'),
     path('criar-caso/', views.criar_caso, name='criar-caso'),
     path('adicionar-elemento/', views.adicionar_elemento, name='adicionar-elemento'),
+    path('atualizar-elemento/', views.atualizar_elemento, name='atualizar-elemento'),
+    path('remover-elemento/', views.remover_elemento, name='remover-elemento'),
 ]
 
