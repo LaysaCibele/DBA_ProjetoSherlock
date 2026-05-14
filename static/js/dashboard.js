@@ -277,49 +277,85 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- 7. Inicialização do GraphEngine ----
     if (typeof GraphEngine !== 'undefined') {
         GraphEngine.init();
+        
+        GraphEngine.onNodeClick((nodeId) => {
+            if (!nodeId) {
+                if (typeof CaseManager !== 'undefined' && typeof CaseManager.showInspector !== 'undefined') {
+                    CaseManager.showInspector(null);
+                }
+                return;
+            }
+
+            const caso = meusCasos[currentCaseIndex];
+            if (!caso) return;
+
+            let nodeData = null;
+
+            if (caso.crime.id === nodeId) nodeData = { tipo: 'Caso', ...caso.crime };
+            else if (caso.local.id === nodeId) nodeData = { tipo: 'Local', ...caso.local };
+            else if (caso.pessoa.id === nodeId) nodeData = { tipo: 'Pessoa', ...caso.pessoa };
+            else if (caso.elementosExtras) {
+                const extra = caso.elementosExtras.find(e => e.id === nodeId);
+                if (extra) nodeData = extra;
+            }
+
+            if (nodeData && typeof CaseManager !== 'undefined' && typeof CaseManager.showInspector !== 'undefined') {
+                CaseManager.showInspector(nodeData);
+            }
+        });
     }
 
     // ---- 7.5 Inicialização do ElementModal ----
     if (typeof ElementModal !== 'undefined') {
         ElementModal.init();
         ElementModal.onSave((elementoSalvo) => {
-            let nodeGroup = '';
-            let edgeLabel = '';
-            
-            if (elementoSalvo.tipo === 'pessoa') {
-                edgeLabel = 'Envolvido em';
-                nodeGroup = 'suspect';
-            } else if (elementoSalvo.tipo === 'local') {
-                edgeLabel = 'Relacionado a';
-                nodeGroup = 'location';
-            } else if (elementoSalvo.tipo === 'veiculo') {
-                edgeLabel = 'Usado em';
-                nodeGroup = 'vehicle';
-            } else if (elementoSalvo.tipo === 'arma') {
-                edgeLabel = 'Usada em';
-                nodeGroup = 'weapon';
-            }
+            try {
+                let nodeGroup = '';
+                let edgeLabel = '';
+                
+                if (elementoSalvo.tipo === 'pessoa') {
+                    edgeLabel = 'Envolvido em';
+                    nodeGroup = 'suspect';
+                } else if (elementoSalvo.tipo === 'local') {
+                    edgeLabel = 'Relacionado a';
+                    nodeGroup = 'location';
+                } else if (elementoSalvo.tipo === 'veiculo') {
+                    edgeLabel = 'Usado em';
+                    nodeGroup = 'vehicle';
+                } else if (elementoSalvo.tipo === 'arma') {
+                    edgeLabel = 'Usada em';
+                    nodeGroup = 'weapon';
+                }
 
-            const nodeData = {
-                id: elementoSalvo.id,
-                label: elementoSalvo.nome || elementoSalvo.modelo || elementoSalvo.tipo_arma || elementoSalvo.nome_local,
-                group: nodeGroup
-            };
+                const nodeData = {
+                    id: elementoSalvo.id,
+                    label: elementoSalvo.nome || elementoSalvo.modelo || elementoSalvo.tipo_arma || elementoSalvo.nome_local,
+                    group: nodeGroup
+                };
 
-            const caso = meusCasos[currentCaseIndex];
-            const crimeId = caso.crime.id;
+                const caso = meusCasos[currentCaseIndex];
+                
+                // Salvar no estado local para não sumir ao sair e voltar do grafo
+                if (!caso.elementosExtras) {
+                    caso.elementosExtras = [];
+                }
+                caso.elementosExtras.push({
+                    id: elementoSalvo.id,
+                    tipo: elementoSalvo.tipo,
+                    nome: nodeData.label,
+                    x: null,
+                    y: null
+                });
 
-            const from = (elementoSalvo.tipo === 'pessoa' || elementoSalvo.tipo === 'veiculo' || elementoSalvo.tipo === 'arma') ? elementoSalvo.id : crimeId;
-            const to = (elementoSalvo.tipo === 'pessoa' || elementoSalvo.tipo === 'veiculo' || elementoSalvo.tipo === 'arma') ? crimeId : elementoSalvo.id;
-
-            const edgeData = {
-                from: from,
-                to: to,
-                label: edgeLabel
-            };
-
-            if (typeof GraphEngine !== 'undefined') {
-                GraphEngine.addExtraNode(nodeData, edgeData);
+                if (typeof GraphEngine !== 'undefined') {
+                    // Força a re-renderização do grafo inteiro com o novo elemento atualizado
+                    GraphEngine.renderGraphForCase(caso);
+                }
+            } catch (err) {
+                console.error("Erro ao desenhar elemento no grafo:", err);
+                if (typeof UI !== 'undefined') {
+                    UI.showNotification("Erro interno ao exibir no grafo.", "error");
+                }
             }
         });
     }

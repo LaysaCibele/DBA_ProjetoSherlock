@@ -3,7 +3,8 @@ const Toast = (function() {
     let container = null;
 
     function init() {
-        if (document.getElementById('toast-container')) return;
+        container = document.getElementById('toast-container');
+        if (container) return;
         
         container = document.createElement('div');
         container.id = 'toast-container';

@@ -108,8 +108,7 @@ const ElementModal = (function() {
                 const response = await fetch('/adicionar-elemento/', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': UI.getCookie('csrftoken') // Se precisar de CSRF real futuramente
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(payload)
                 });
