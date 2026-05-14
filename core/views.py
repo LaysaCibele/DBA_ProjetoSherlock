@@ -67,20 +67,36 @@ def listar_casos(request):
         
         data = []
         for c in casos:
+            elementos = list(c.objetos.all())
+            extras = []
+            for obj in elementos:
+                extras.append({
+                    "id": f"extra_{obj.tipo}_{obj.id}",
+                    "tipo": obj.tipo,
+                    "nome": obj.descricao,
+                    "x": None,
+                    "y": None
+                })
+
             data.append({
                 "id": c.id,
                 "crime": {
+                    "id": f"crime_{c.crime.id}",
+                    "id_crime": c.crime.id,
                     "titulo": c.crime.titulo,
                     "tipo": c.crime.tipo,
                     "data": str(c.crime.data)
                 },
                 "pessoa": {
+                    "id": f"pessoa_{c.pessoa.id}",
                     "nome": c.pessoa.nome,
                     "funcao": c.pessoa.funcao
                 },
                 "local": {
+                    "id": f"local_{c.local.id}",
                     "nome": c.local.nome
-                }
+                },
+                "elementosExtras": extras
             })
         return JsonResponse(data, safe=False)
     except Exception as e:
@@ -105,7 +121,7 @@ def adicionar_elemento(request):
 
             return JsonResponse({
                 'success': True, 
-                'id': novo_objeto.id, 
+                'id': f"extra_{novo_objeto.tipo}_{novo_objeto.id}", 
                 'message': 'Elemento adicionado com sucesso!'
             })
         except Exception as e:

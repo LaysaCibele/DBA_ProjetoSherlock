@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         CaseManager.renderCards(meusCasos);
 
         CaseManager.onCaseClick((casoClicado) => {
-
+            window.currentCaseId = casoClicado.id;
             const index = meusCasos.findIndex(c =>
                 c.crime.id === casoClicado.crime.id
             );
@@ -277,6 +277,51 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- 7. Inicialização do GraphEngine ----
     if (typeof GraphEngine !== 'undefined') {
         GraphEngine.init();
+    }
+
+    // ---- 7.5 Inicialização do ElementModal ----
+    if (typeof ElementModal !== 'undefined') {
+        ElementModal.init();
+        ElementModal.onSave((elementoSalvo) => {
+            let nodeGroup = '';
+            let edgeLabel = '';
+            
+            if (elementoSalvo.tipo === 'pessoa') {
+                edgeLabel = 'Envolvido em';
+                nodeGroup = 'suspect';
+            } else if (elementoSalvo.tipo === 'local') {
+                edgeLabel = 'Relacionado a';
+                nodeGroup = 'location';
+            } else if (elementoSalvo.tipo === 'veiculo') {
+                edgeLabel = 'Usado em';
+                nodeGroup = 'vehicle';
+            } else if (elementoSalvo.tipo === 'arma') {
+                edgeLabel = 'Usada em';
+                nodeGroup = 'weapon';
+            }
+
+            const nodeData = {
+                id: elementoSalvo.id,
+                label: elementoSalvo.nome || elementoSalvo.modelo || elementoSalvo.tipo_arma || elementoSalvo.nome_local,
+                group: nodeGroup
+            };
+
+            const caso = meusCasos[currentCaseIndex];
+            const crimeId = caso.crime.id;
+
+            const from = (elementoSalvo.tipo === 'pessoa' || elementoSalvo.tipo === 'veiculo' || elementoSalvo.tipo === 'arma') ? elementoSalvo.id : crimeId;
+            const to = (elementoSalvo.tipo === 'pessoa' || elementoSalvo.tipo === 'veiculo' || elementoSalvo.tipo === 'arma') ? crimeId : elementoSalvo.id;
+
+            const edgeData = {
+                from: from,
+                to: to,
+                label: edgeLabel
+            };
+
+            if (typeof GraphEngine !== 'undefined') {
+                GraphEngine.addExtraNode(nodeData, edgeData);
+            }
+        });
     }
 
     // ---- 8. Carregar Casos ----
