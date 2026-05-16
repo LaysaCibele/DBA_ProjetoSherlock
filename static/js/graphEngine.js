@@ -310,10 +310,14 @@ const GraphEngine = (function() {
     function removeNode(nodeId) {
         if (!network) return;
         
-        // Vis.js handles connected edges automatically when a node is removed from DataSet
+        // Remove connected edges explicitly first
+        const connectedEdges = network.getConnectedEdges(nodeId);
+        edgesDataset.remove(connectedEdges);
+        
+        // Then remove the node
         nodesDataset.remove(nodeId);
         
-        // But we need to inform the UI that selection is gone
+        // Inform the UI that selection is gone
         if (onNodeClickCallback) onNodeClickCallback(null);
     }
 

@@ -218,7 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.success) {
 
-                    carregarCasos();
+                    await carregarCasos();
+                    showHomeView();
+                    if (typeof CaseManager !== 'undefined') {
+                        CaseManager.renderCards(meusCasos);
+                    }
 
                     UI.showNotification(
                         'Cadastro realizado com sucesso!',
@@ -330,9 +334,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             caso.elementosExtras = caso.elementosExtras.filter(e => e.id !== elementId);
                         }
                         
-                        // Atualiza grafo
+                        // Atualiza grafo removendo apenas o nó e suas arestas diretamente
                         if (typeof GraphEngine !== 'undefined') {
-                            GraphEngine.renderGraphForCase(caso);
+                            GraphEngine.removeNode(elementId);
                         }
                     } else {
                         UI.showNotification(resData.message || 'Erro ao remover', 'error');
