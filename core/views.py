@@ -73,6 +73,14 @@ def criar_caso(request):
 @csrf_exempt
 def listar_casos(request):
     try:
+        # Busca todas as conexões manuais do Neo4j de uma vez para evitar N+1
+        manual_edges = []
+        try:
+            query = "MATCH (a)-[r:VINCULO]->(b) RETURN a.id_elemento AS from, b.id_elemento AS to, r.tipo AS label"
+            manual_edges = neo4j_db.run_query(query)
+        except Exception as neo_err:
+            print(f"Aviso Neo4j: {neo_err}")
+
         # Busca os casos no SQLite para popular o dashboard.js
         casos = CasoRelacional.objects.select_related('crime', 'pessoa', 'local').all()
         
@@ -80,10 +88,13 @@ def listar_casos(request):
         for c in casos:
             elementos = list(c.objetos.all())
             extras = []
+            case_node_ids = { f"crime_{c.crime.id}", f"pessoa_{c.pessoa.id}", f"local_{c.local.id}" }
+            
             for obj in elementos:
                 extra_data = obj.dados_extras if obj.dados_extras else {}
+                extra_id = f"extra_{obj.tipo}_{obj.id}"
                 extra_item = {
-                    "id": f"extra_{obj.tipo}_{obj.id}",
+                    "id": extra_id,
                     "tipo": obj.tipo,
                     "nome": obj.descricao,
                     "x": None,
@@ -92,6 +103,10 @@ def listar_casos(request):
                 # Merge dynamic fields from JSON
                 extra_item.update(extra_data)
                 extras.append(extra_item)
+                case_node_ids.add(extra_id)
+
+            # Filtra as conexões manuais que pertencem aos nós deste caso
+            case_edges = [edge for edge in manual_edges if edge['from'] in case_node_ids and edge['to'] in case_node_ids]
 
             data.append({
                 "id": c.id,
@@ -111,7 +126,8 @@ def listar_casos(request):
                     "id": f"local_{c.local.id}",
                     "nome": c.local.nome
                 },
-                "elementosExtras": extras
+                "elementosExtras": extras,
+                "conexoesManuais": case_edges
             })
         return JsonResponse(data, safe=False)
     except Exception as e:

@@ -445,54 +445,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- 7.5 Inicialização do ElementModal ----
     if (typeof ElementModal !== 'undefined') {
         ElementModal.init();
-        ElementModal.onSave((elementoSalvo) => {
+        ElementModal.onSave(async (elementoSalvo) => {
             try {
-                let nodeGroup = '';
-                let edgeLabel = '';
+                // Aguarda carregar casos atualizados do back-end para não perder conexões manuais
+                await carregarCasos();
                 
-                if (elementoSalvo.tipo === 'pessoa') {
-                    edgeLabel = 'Envolvido em';
-                    nodeGroup = 'suspect';
-                } else if (elementoSalvo.tipo === 'local') {
-                    edgeLabel = 'Relacionado a';
-                    nodeGroup = 'location';
-                } else if (elementoSalvo.tipo === 'veiculo') {
-                    edgeLabel = 'Usado em';
-                    nodeGroup = 'vehicle';
-                } else if (elementoSalvo.tipo === 'arma') {
-                    edgeLabel = 'Usada em';
-                    nodeGroup = 'weapon';
-                }
-
-                const nodeData = {
-                    id: elementoSalvo.id,
-                    label: elementoSalvo.nome || elementoSalvo.modelo || elementoSalvo.tipo_arma || elementoSalvo.nome_local,
-                    group: nodeGroup
-                };
-
-                const caso = meusCasos[currentCaseIndex];
+                const casoAtualizado = meusCasos.find(c => c.id === window.currentCaseId);
                 
-                // Salvar no estado local para não sumir ao sair e voltar do grafo
-                if (!caso.elementosExtras) {
-                    caso.elementosExtras = [];
-                }
-                caso.elementosExtras.push({
-                    id: elementoSalvo.id,
-                    tipo: elementoSalvo.tipo,
-                    nome: nodeData.label,
-                    x: null,
-                    y: null,
-                    ...elementoSalvo
-                });
-
-                if (typeof GraphEngine !== 'undefined') {
-                    // Força a re-renderização do grafo inteiro com o novo elemento atualizado
-                    GraphEngine.renderGraphForCase(caso);
+                if (casoAtualizado && typeof GraphEngine !== 'undefined') {
+                    // Atualiza o índice caso tenha mudado
+                    currentCaseIndex = meusCasos.findIndex(c => c.id === window.currentCaseId);
+                    
+                    // Força a re-renderização do grafo inteiro com todos os elementos E conexões originais + manuais que vieram do banco
+                    GraphEngine.renderGraphForCase(casoAtualizado);
                 }
             } catch (err) {
-                console.error("Erro ao desenhar elemento no grafo:", err);
+                console.error("Erro ao redesenhar elemento no grafo:", err);
                 if (typeof UI !== 'undefined') {
-                    UI.showNotification("Erro interno ao exibir no grafo.", "error");
+                    UI.showNotification("Erro interno ao atualizar grafo.", "error");
                 }
             }
         });
