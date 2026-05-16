@@ -242,6 +242,16 @@ def remover_elemento(request):
             if element_id.startswith('extra_'):
                 obj_id = element_id.split('_')[-1]
                 ObjetoRelacional.objects.filter(id=obj_id).delete()
+                
+                # Sincronizar com o Neo4j removendo o nó e todos os seus relacionamentos (DETACH DELETE)
+                try:
+                    neo4j_db.run_query(
+                        "MATCH (e {id_elemento: $id_deletado}) DETACH DELETE e",
+                        {"id_deletado": element_id}
+                    )
+                except Exception as neo_e:
+                    print(f"Erro ao deletar elemento extra no Neo4j: {neo_e}")
+
                 return JsonResponse({'success': True, 'message': 'Elemento extra removido'})
             else:
                 return JsonResponse({'success': False, 'message': 'Não é possível remover elementos principais do caso por aqui. Exclua o caso inteiro.'}, status=400)
