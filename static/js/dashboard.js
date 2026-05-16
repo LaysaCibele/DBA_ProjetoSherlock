@@ -276,6 +276,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         });
 
+        CaseManager.onDeleteCase(async (caso) => {
+            try {
+                let confirmed = true;
+                if (typeof CustomDialogs !== 'undefined' && CustomDialogs.confirm) {
+                    confirmed = await CustomDialogs.confirm(`Deseja realmente excluir o caso #${caso.crime.id_crime}?`, 'Excluir Caso');
+                } else {
+                    confirmed = confirm(`Deseja realmente excluir o caso #${caso.crime.id_crime}?`);
+                }
+
+                if (confirmed) {
+                    const response = await fetch('/deletar-caso/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: caso.id })
+                    });
+                    const resData = await response.json();
+                    
+                    if (resData.success) {
+                        await carregarCasos();
+                        if (typeof UI !== 'undefined') {
+                            UI.showNotification('Caso excluído com sucesso!', 'success');
+                        }
+                    } else {
+                        if (typeof UI !== 'undefined') {
+                            UI.showNotification(resData.message || 'Erro ao excluir caso.', 'error');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Erro no delete:", error);
+                if (typeof UI !== 'undefined') {
+                    UI.showNotification('Erro interno: ' + error.message, 'error');
+                }
+            }
+        });
+
         // Atualizar informações do elemento
         if (typeof CaseManager.onDataUpdated !== 'undefined') {
             CaseManager.onDataUpdated(async (updatedData) => {
@@ -312,6 +348,32 @@ document.addEventListener('DOMContentLoaded', () => {
         // Remover elemento do caso
         if (typeof CaseManager.onRemoveElement !== 'undefined') {
             CaseManager.onRemoveElement(async (elementId) => {
+                // Se for o nó do Caso (ou outro principal), deleta o caso inteiro
+                if (elementId.startsWith('crime_') || elementId.startsWith('pessoa_') || elementId.startsWith('local_')) {
+                    try {
+                        const response = await fetch('/deletar-caso/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: window.currentCaseId })
+                        });
+                        const resData = await response.json();
+                        
+                        if (resData.success) {
+                            UI.showNotification('Caso excluído com sucesso!', 'success');
+                            showHomeView();
+                            carregarCasos();
+                            if (typeof CaseManager.showInspector !== 'undefined') {
+                                CaseManager.showInspector(null);
+                            }
+                        } else {
+                            UI.showNotification(resData.message || 'Erro ao excluir o caso', 'error');
+                        }
+                    } catch (error) {
+                        UI.showNotification(`Erro na requisição: ${error.message}`, 'error');
+                    }
+                    return;
+                }
+
                 try {
                     const response = await fetch('/remover-elemento/', {
                         method: 'POST',

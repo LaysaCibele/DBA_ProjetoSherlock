@@ -19,7 +19,7 @@ def criar_caso(request):
         try:
             data = json.loads(request.body)
             
-            # 1. SALVAR NO BANCO RELACIONAL (Django/SQLite) 
+            # 1. Salva no SQLite
             crime_rel = CrimeRelacional.objects.create(
                 titulo=data['crime']['titulo'],
                 tipo=data['crime']['tipo'],
@@ -35,41 +35,38 @@ def criar_caso(request):
                 endereco=data['local'].get('endereco', '')
             )
             
-            CasoRelacional.objects.create(
+            caso_db = CasoRelacional.objects.create(
                 crime=crime_rel,
                 pessoa=pessoa_rel,
                 local=local_rel
             )
 
-            # 2. BLOCO DO NEO4J
-            neo4j_db.run_query(
-                "CREATE (p:Pessoa {id_elemento: $id_pessoa, nome: $nome, funcao: $funcao})",
-                {"id_pessoa": f"pessoa_{pessoa_rel.id}", "nome": pessoa_rel.nome, "funcao": pessoa_rel.funcao}
-            )
-            neo4j_db.run_query(
-                "CREATE (c:Crime {id_elemento: $id_crime, titulo: $titulo, tipo: $tipo, data: $data})",
-                {"id_crime": f"crime_{crime_rel.id}", "titulo": crime_rel.titulo, "tipo": crime_rel.tipo, "data": str(crime_rel.data)}
-            )
-            neo4j_db.run_query(
-                "CREATE (l:Local {id_elemento: $id_local, nome: $nome})",
-                {"id_local": f"local_{local_rel.id}", "nome": local_rel.nome}
-            )
-            
-            neo4j_db.run_query(
-                "MATCH (p:Pessoa {id_elemento: $id_pessoa}), (c:Crime {id_elemento: $id_crime}) MERGE (p)-[:ENVOLVIDO_EM]->(c)",
-                {"id_pessoa": f"pessoa_{pessoa_rel.id}", "id_crime": f"crime_{crime_rel.id}"}
-            )
-            neo4j_db.run_query(
-                "MATCH (c:Crime {id_elemento: $id_crime}), (l:Local {id_elemento: $id_local}) MERGE (c)-[:OCORREU_EM]->(l)",
-                {"id_crime": f"crime_{crime_rel.id}", "id_local": f"local_{local_rel.id}"}
-            )
+            # 2. Salva no Neo4j de forma segura
+            try:
+                id_crime = f"crime_{crime_rel.id}"
+                id_pessoa = f"pessoa_{pessoa_rel.id}"
+                id_local = f"local_{local_rel.id}"
+                
+                query = """
+                CREATE (c:Crime {id_elemento: $id_crime, id_crime: $id_rel, titulo: $titulo, tipo: $tipo, data: $data_c})
+                CREATE (p:Pessoa {id_elemento: $id_pessoa, nome: $nome, funcao: $funcao})
+                CREATE (l:Local {id_elemento: $id_local, nome: $nome_l})
+                MERGE (p)-[:ENVOLVIDO_EM]->(c)
+                MERGE (c)-[:OCORREU_EM]->(l)
+                """
+                
+                neo4j_db.run_query(query, {
+                    "id_crime": id_crime, "id_rel": str(crime_rel.id), "titulo": crime_rel.titulo, "tipo": crime_rel.tipo, "data_c": str(crime_rel.data),
+                    "id_pessoa": id_pessoa, "nome": pessoa_rel.nome, "funcao": pessoa_rel.funcao,
+                    "id_local": id_local, "nome_l": local_rel.nome
+                })
+            except Exception as neo_err:
+                print(f"Erro Neo4j (Caso continuará salvo no SQLite): {neo_err}")
 
-            return JsonResponse({'success': True, 'message': 'Caso persistido no SQLite e Neo4j!'})
-
+            return JsonResponse({'success': True, 'message': 'Caso cadastrado!'})
         except Exception as e:
-            print(f"Erro no Backend: {e}")
+            print(f"Erro Crítico no Backend: {e}")
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
-
     return JsonResponse({'success': False}, status=405)
 
 
@@ -276,5 +273,34 @@ def salvar_conexao_manual(request):
 
             return JsonResponse({'success': True, 'message': 'Conexão manual salva no Neo4j'})
         except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)
+
+
+@csrf_exempt
+def deletar_caso(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            caso_id = data.get('id')
+            
+            caso = CasoRelacional.objects.get(id=caso_id)
+            crime_id = caso.crime.id
+            pessoa_id = caso.pessoa.id
+            local_id = caso.local.id
+            
+            # 1. Deleta o nó do Crime correspondente e tudo ligado a ele no Neo4j AuraDB
+            query = "MATCH (c:Crime {id_elemento: $id}) DETACH DELETE c"
+            neo4j_db.run_query(query, {"id": f"crime_{crime_id}"})
+            
+            # 2. Deleta do SQLite limpando os registros atrelados
+            caso.delete()
+            CrimeRelacional.objects.filter(id=crime_id).delete()
+            PessoaRelacional.objects.filter(id=pessoa_id).delete()
+            LocalRelacional.objects.filter(id=local_id).delete()
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            print(f"Erro ao deletar caso: {e}")
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False}, status=405)

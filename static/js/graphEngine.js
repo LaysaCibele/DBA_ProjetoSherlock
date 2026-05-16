@@ -310,14 +310,18 @@ const GraphEngine = (function() {
     function removeNode(nodeId) {
         if (!network) return;
         
-        // Remove connected edges explicitly first
-        const connectedEdges = network.getConnectedEdges(nodeId);
-        edgesDataset.remove(connectedEdges);
-        
-        // Then remove the node
+        // 1. Remove o nó do dataset visual
         nodesDataset.remove(nodeId);
         
-        // Inform the UI that selection is gone
+        // 2. Filtra e remove APENAS as arestas que saem ou chegam nesse nó específico
+        const connectedEdges = edgesDataset.get({
+            filter: function (edge) {
+                return edge.from === nodeId || edge.to === nodeId;
+            }
+        });
+        const edgeIdsToRemove = connectedEdges.map(edge => edge.id);
+        edgesDataset.remove(edgeIdsToRemove);
+        
         if (onNodeClickCallback) onNodeClickCallback(null);
     }
 

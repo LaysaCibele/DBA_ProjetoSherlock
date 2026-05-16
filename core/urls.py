@@ -13,5 +13,6 @@ urlpatterns = [
     path('atualizar-elemento/', views.atualizar_elemento, name='atualizar-elemento'),
     path('remover-elemento/', views.remover_elemento, name='remover-elemento'),
     path('salvar-conexao-manual/', views.salvar_conexao_manual, name='salvar-conexao-manual'),
+    path('deletar-caso/', views.deletar_caso, name='deletar-caso'),
 ]
 
