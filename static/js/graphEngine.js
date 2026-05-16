@@ -94,6 +94,21 @@ const GraphEngine = (function() {
                             data.label = label;
                             callback(data);
                             
+                            fetch('/salvar-conexao-manual/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    from: data.from,
+                                    to: data.to,
+                                    label: data.label
+                                })
+                            }).then(response => response.json())
+                              .then(res => {
+                                  if(!res.success) console.error('Erro ao salvar conexão manual no Neo4j:', res.message);
+                              }).catch(err => console.error('Erro no fetch salvar-conexao-manual:', err));
+
                             if (onManualEdgeAddedCallback) {
                                 onManualEdgeAddedCallback(data);
                             }

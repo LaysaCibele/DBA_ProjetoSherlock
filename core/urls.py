@@ -12,5 +12,6 @@ urlpatterns = [
     path('adicionar-elemento/', views.adicionar_elemento, name='adicionar-elemento'),
     path('atualizar-elemento/', views.atualizar_elemento, name='atualizar-elemento'),
     path('remover-elemento/', views.remover_elemento, name='remover-elemento'),
+    path('salvar-conexao-manual/', views.salvar_conexao_manual, name='salvar-conexao-manual'),
 ]
 
