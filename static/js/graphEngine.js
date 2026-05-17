@@ -4,6 +4,26 @@ const GraphEngine = (function() {
     let network = null;
     let nodesDataset = new vis.DataSet([]);
     let edgesDataset = new vis.DataSet([]);
+    window.edgesDataset = edgesDataset; // Expõe para acesso global
+
+    function addEdgeUnique(edge) {
+        if (!window.edgesDataset) return;
+        
+        // Garante unicidade absoluta: gera um ID determinístico combinando os nós (sem importar a direção)
+        const nodeIds = [String(edge.from), String(edge.to)].sort();
+        edge.id = `rel_${nodeIds[0]}_${nodeIds[1]}`;
+
+        // Verifica direto no dataset pelo ID exclusivo da relação
+        const jaExiste = window.edgesDataset.get(edge.id);
+
+        if (jaExiste) {
+            console.log(`[Vis.js] Linha duplicada bloqueada entre ${edge.from} e ${edge.to}`);
+            return; 
+        }
+        
+        window.edgesDataset.add(edge);
+    }
+    window.addEdgeUnique = addEdgeUnique;
 
     function init() {
         const container = document.getElementById('network-graph');
@@ -230,7 +250,7 @@ const GraphEngine = (function() {
 
         standardEdges.forEach(edge => {
             if (!isHidden(edge.from, edge.to)) {
-                edgesDataset.add(edge);
+                addEdgeUnique(edge);
             }
         });
 
@@ -265,7 +285,7 @@ const GraphEngine = (function() {
                 const to = elemento.tipo === 'pessoa' || elemento.tipo === 'veiculo' || elemento.tipo === 'arma' ? crime.id : elemento.id;
 
                 if (!isHidden(from, to)) {
-                    edgesDataset.add({
+                    addEdgeUnique({
                         from: from,
                         to: to,
                         label: edgeLabel
@@ -278,7 +298,7 @@ const GraphEngine = (function() {
         if (caso.conexoesManuais && caso.conexoesManuais.length > 0) {
             caso.conexoesManuais.forEach(edge => {
                 if (!isHidden(edge.from, edge.to)) {
-                    edgesDataset.add(edge);
+                    addEdgeUnique(edge);
                 }
             });
         }
@@ -296,7 +316,7 @@ const GraphEngine = (function() {
         if (!network) return;
 
         nodesDataset.add(nodeData);
-        edgesDataset.add(edgeData);
+        addEdgeUnique(edgeData);
 
         network.focus(nodeData.id, {
             scale: 1.2,

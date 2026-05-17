@@ -325,8 +325,15 @@ def deletar_caso(request):
             local_id = caso.local.id
             
             # 1. Deleta o nó do Crime correspondente e tudo ligado a ele no Neo4j AuraDB
-            query = "MATCH (c:Crime {id_elemento: $id}) DETACH DELETE c"
-            neo4j_db.run_query(query, {"id": f"crime_{crime_id}"})
+            try:
+                query = """
+                MATCH (c:Crime {id_elemento: $id_crime})
+                OPTIONAL MATCH (c)-[r]-(conectado)
+                DETACH DELETE c, conectado
+                """
+                neo4j_db.run_query(query, {"id_crime": f"crime_{crime_id}"})
+            except Exception as neo_e:
+                print(f"Erro ao deletar no Neo4j (removendo apenas do SQLite): {neo_e}")
             
             # 2. Deleta do SQLite limpando os registros atrelados
             caso.delete()
