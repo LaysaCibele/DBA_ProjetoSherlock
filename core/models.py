@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 from neomodel import StructuredNode, StringProperty, DateProperty, RelationshipTo
 
@@ -31,6 +32,7 @@ class CasoRelacional(models.Model):
     crime = models.ForeignKey(CrimeRelacional, on_delete=models.CASCADE)
     pessoa = models.ForeignKey(PessoaRelacional, on_delete=models.CASCADE)
     local = models.ForeignKey(LocalRelacional, on_delete=models.CASCADE)
+    criado_por = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     data_registro = models.DateTimeField(auto_now_add=True)
     
     
