@@ -226,6 +226,17 @@ def atualizar_elemento(request):
                         obj.dados_extras[key] = value
                         
                 obj.save()
+                
+                # Neo4j
+                try:
+                    if 'nome' in dados:
+                        neo4j_db.run_query(
+                            "MATCH (n {id_elemento: $id}) SET n.nome = $nome",
+                            {"id": element_id, "nome": obj.descricao}
+                        )
+                except Exception as e:
+                    print(f"Erro Neo4j: {e}")
+
                 return JsonResponse({'success': True, 'message': 'Elemento atualizado'})
 
             elif element_id.startswith('crime_'):
@@ -235,6 +246,27 @@ def atualizar_elemento(request):
                 if 'tipo' in dados: obj.tipo = dados['tipo']
                 if 'data' in dados: obj.data = dados['data']
                 obj.save()
+
+                # Neo4j
+                try:
+                    set_clauses = []
+                    params = {"id": element_id}
+                    if 'titulo' in dados:
+                        set_clauses.append("n.titulo = $titulo")
+                        params["titulo"] = obj.titulo
+                    if 'tipo' in dados:
+                        set_clauses.append("n.tipo = $tipo")
+                        params["tipo"] = obj.tipo
+                    if 'data' in dados:
+                        set_clauses.append("n.data = $data")
+                        params["data"] = str(obj.data)
+                    
+                    if set_clauses:
+                        query = f"MATCH (n {{id_elemento: $id}}) SET {', '.join(set_clauses)}"
+                        neo4j_db.run_query(query, params)
+                except Exception as e:
+                    print(f"Erro Neo4j: {e}")
+
                 return JsonResponse({'success': True, 'message': 'Crime atualizado'})
 
             elif element_id.startswith('pessoa_'):
@@ -243,6 +275,24 @@ def atualizar_elemento(request):
                 if 'nome' in dados: obj.nome = dados['nome']
                 if 'funcao' in dados: obj.funcao = dados['funcao']
                 obj.save()
+
+                # Neo4j
+                try:
+                    set_clauses = []
+                    params = {"id": element_id}
+                    if 'nome' in dados:
+                        set_clauses.append("n.nome = $nome")
+                        params["nome"] = obj.nome
+                    if 'funcao' in dados:
+                        set_clauses.append("n.funcao = $funcao")
+                        params["funcao"] = obj.funcao
+                    
+                    if set_clauses:
+                        query = f"MATCH (n {{id_elemento: $id}}) SET {', '.join(set_clauses)}"
+                        neo4j_db.run_query(query, params)
+                except Exception as e:
+                    print(f"Erro Neo4j: {e}")
+
                 return JsonResponse({'success': True, 'message': 'Pessoa atualizada'})
 
             elif element_id.startswith('local_'):
@@ -250,6 +300,17 @@ def atualizar_elemento(request):
                 obj = LocalRelacional.objects.get(id=obj_id)
                 if 'nome' in dados: obj.nome = dados['nome']
                 obj.save()
+
+                # Neo4j
+                try:
+                    if 'nome' in dados:
+                        neo4j_db.run_query(
+                            "MATCH (n {id_elemento: $id}) SET n.nome = $nome",
+                            {"id": element_id, "nome": obj.nome}
+                        )
+                except Exception as e:
+                    print(f"Erro Neo4j: {e}")
+
                 return JsonResponse({'success': True, 'message': 'Local atualizado'})
 
             return JsonResponse({'success': False, 'message': 'Tipo de ID desconhecido'}, status=400)

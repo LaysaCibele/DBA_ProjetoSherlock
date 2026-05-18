@@ -329,12 +329,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (resData.success) {
                         UI.showNotification('Elemento atualizado!', 'success');
                         
-                        // Atualizar label no grafo se for nome ou descricao
-                        if (updatedData.nome) {
-                            const caso = meusCasos[currentCaseIndex];
-                            if (typeof GraphEngine !== 'undefined') {
-                                GraphEngine.renderGraphForCase(caso);
-                            }
+                        const caso = meusCasos[currentCaseIndex];
+                        
+                        if (updatedData.id.startsWith('crime_')) {
+                            Object.assign(caso.crime, updatedData);
+                        } else if (updatedData.id.startsWith('local_')) {
+                            Object.assign(caso.local, updatedData);
+                        } else if (updatedData.id.startsWith('pessoa_')) {
+                            Object.assign(caso.pessoa, updatedData);
+                        } else if (updatedData.id.startsWith('extra_')) {
+                            const extra = caso.elementosExtras.find(e => e.id === updatedData.id);
+                            if (extra) Object.assign(extra, updatedData);
+                        }
+
+                        if (typeof GraphEngine !== 'undefined') {
+                            GraphEngine.renderGraphForCase(caso);
                         }
                     } else {
                         UI.showNotification(resData.message || 'Erro ao atualizar', 'error');
