@@ -87,6 +87,108 @@ const CaseManager = (function() {
             return;
         }
 
+        // Se for uma conexão/edge
+        const isEdge = elementData.id && elementData.id.startsWith('rel_');
+
+        if (isEdge) {
+            const fromNode = typeof GraphEngine !== 'undefined' && GraphEngine.nodesDataset ? GraphEngine.nodesDataset.get(elementData.from) : null;
+            const toNode = typeof GraphEngine !== 'undefined' && GraphEngine.nodesDataset ? GraphEngine.nodesDataset.get(elementData.to) : null;
+            
+            const fromName = fromNode ? fromNode.label.split('\n')[0] : 'Elemento de Origem';
+            const toName = toNode ? toNode.label.split('\n')[0] : 'Elemento de Destino';
+            
+            let html = `
+                <div class="inspector-header-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                    <i class="ph ph-git-commit" style="vertical-align: middle; margin-right: 6px;"></i> Detalhes da Conexão
+                </div>
+                
+                <div class="inspector-item">
+                    <span class="inspector-label">Origem</span>
+                    <div class="inspector-value-container" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                        <span class="inspector-value" style="color: var(--text-secondary);">${fromName}</span>
+                    </div>
+                </div>
+                
+                <div class="inspector-item" style="margin-top: 12px;">
+                    <span class="inspector-label">Destino</span>
+                    <div class="inspector-value-container" style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+                        <span class="inspector-value" style="color: var(--text-secondary);">${toName}</span>
+                    </div>
+                </div>
+                
+                <div class="inspector-item" style="margin-top: 12px;">
+                    <span class="inspector-label">Nome da Conexão</span>
+                    <div class="inspector-value-container" id="container-label">
+                        <span class="inspector-value" id="val-label">${elementData.label}</span>
+                        <button class="btn-edit" data-key="label" title="Editar"><i class="ph ph-pencil"></i></button>
+                    </div>
+                </div>
+                
+                <div class="inspector-actions" style="margin-top: 24px;">
+                    <button id="btn-remover-conexao" class="btn-danger-outline" style="width: 100%;">
+                        <i class="ph ph-trash"></i>
+                        Remover Conexão
+                    </button>
+                </div>
+            `;
+            
+            inspectorContent.innerHTML = html;
+            
+            // Listener para remover conexão
+            const removeBtn = document.getElementById('btn-remover-conexao');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', async () => {
+                    const confirmed = await CustomDialogs.confirm(
+                        'Deseja realmente remover esta conexão?',
+                        'Remover Conexão'
+                    );
+                    if (confirmed) {
+                        if (onRemoveElementCallback) {
+                            onRemoveElementCallback(elementData); // Envia o objeto inteiro da conexão
+                        }
+                    }
+                });
+            }
+            
+            // Listener para editar conexão
+            const editBtn = inspectorContent.querySelector('.btn-edit');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    const container = document.getElementById('container-label');
+                    const currentValue = elementData.label || '';
+                    
+                    container.innerHTML = `
+                        <input type="text" class="edit-input" id="input-label" value="${currentValue}" style="width: 100%; box-sizing: border-box;">
+                        <button class="btn-save" data-key="label" title="Salvar"><i class="ph ph-check"></i></button>
+                    `;
+                    
+                    const inputElement = document.getElementById('input-label');
+                    inputElement.focus();
+                    
+                    const saveBtn = container.querySelector('.btn-save');
+                    
+                    const saveAction = () => {
+                        const newValue = inputElement.value;
+                        elementData.label = newValue;
+                        
+                        if (onDataUpdatedCallback) {
+                            onDataUpdatedCallback(elementData);
+                        }
+                        
+                        showInspector(elementData);
+                    };
+                    
+                    saveBtn.addEventListener('click', saveAction);
+                    inputElement.addEventListener('keypress', (event) => {
+                        if (event.key === 'Enter') {
+                            saveAction();
+                        }
+                    });
+                });
+            }
+            return;
+        }
+
         let html = '';
         
         Object.keys(elementData).forEach(key => {

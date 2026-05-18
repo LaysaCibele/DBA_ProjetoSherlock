@@ -210,17 +210,12 @@ const GraphEngine = (function() {
         edgesDataset.clear();
 
         const { local, crime, pessoa } = caso;
-        const hiddenEdges = caso.conexoesOcultas || [];
-
-        const isHidden = (from, to) => {
-            return hiddenEdges.some(e => (e.from === from && e.to === to) || (e.from === to && e.to === from));
-        };
 
         // Desativar física se houver nós com coordenadas para evitar "espalhamento" indesejado
         const hasCoords = (local.x !== undefined || crime.x !== undefined || pessoa.x !== undefined);
         network.setOptions({ physics: { enabled: !hasCoords } });
 
-        // Adicionar Nós
+        // Adicionar Nós Principais
         nodesDataset.add([
             {
                 id: local.id,
@@ -242,37 +237,14 @@ const GraphEngine = (function() {
             }
         ]);
 
-        // Adicionar Arestas da cena principal
-        const standardEdges = [
-            { from: pessoa.id, to: crime.id, label: pessoa.funcao || 'Envolvido em' },
-            { from: crime.id, to: local.id, label: 'Ocorreu em' }
-        ];
-
-        standardEdges.forEach(edge => {
-            if (!isHidden(edge.from, edge.to)) {
-                addEdgeUnique(edge);
-            }
-        });
-
-        // Adicionar nós e arestas extras
+        // Adicionar nós extras
         if (caso.elementosExtras && caso.elementosExtras.length > 0) {
             caso.elementosExtras.forEach(elemento => {
                 let nodeGroup = '';
-                let edgeLabel = '';
-
-                if (elemento.tipo === 'pessoa') {
-                    edgeLabel = 'Envolvido em';
-                    nodeGroup = 'suspect';
-                } else if (elemento.tipo === 'local') {
-                    edgeLabel = 'Relacionado a';
-                    nodeGroup = 'location';
-                } else if (elemento.tipo === 'veiculo') {
-                    edgeLabel = 'Usado em';
-                    nodeGroup = 'vehicle';
-                } else if (elemento.tipo === 'arma') {
-                    edgeLabel = 'Usada em';
-                    nodeGroup = 'weapon';
-                }
+                if (elemento.tipo === 'pessoa') nodeGroup = 'suspect';
+                else if (elemento.tipo === 'local') nodeGroup = 'location';
+                else if (elemento.tipo === 'veiculo') nodeGroup = 'vehicle';
+                else if (elemento.tipo === 'arma') nodeGroup = 'weapon';
 
                 nodesDataset.add({
                     id: elemento.id,
@@ -280,27 +252,45 @@ const GraphEngine = (function() {
                     group: nodeGroup,
                     x: elemento.x, y: elemento.y
                 });
-
-                const from = elemento.tipo === 'pessoa' || elemento.tipo === 'veiculo' || elemento.tipo === 'arma' ? elemento.id : crime.id;
-                const to = elemento.tipo === 'pessoa' || elemento.tipo === 'veiculo' || elemento.tipo === 'arma' ? crime.id : elemento.id;
-
-                if (!isHidden(from, to)) {
-                    addEdgeUnique({
-                        from: from,
-                        to: to,
-                        label: edgeLabel
-                    });
-                }
             });
         }
 
-        // Desenhar Conexões Manuais
+        // Mapeador de labels bonitos
+        const prettyLabel = (label) => {
+            if (label === 'ENVOLVIDO_EM') return 'Envolvido em';
+            if (label === 'OCORREU_EM') return 'Ocorreu em';
+            if (label === 'RELACIONADO_A') return 'Relacionado a';
+            return label;
+        };
+
+        // Desenhar Arestas (Conexões) vindas do Neo4j
         if (caso.conexoesManuais && caso.conexoesManuais.length > 0) {
             caso.conexoesManuais.forEach(edge => {
-                if (!isHidden(edge.from, edge.to)) {
-                    addEdgeUnique(edge);
-                }
+                addEdgeUnique({
+                    from: edge.from,
+                    to: edge.to,
+                    label: prettyLabel(edge.label)
+                });
             });
+        } else {
+            // Fallback robusto se o Neo4j não retornou nada
+            const fallbackEdges = [
+                { from: pessoa.id, to: crime.id, label: pessoa.funcao || 'Envolvido em' },
+                { from: crime.id, to: local.id, label: 'Ocorreu em' }
+            ];
+            if (caso.elementosExtras && caso.elementosExtras.length > 0) {
+                caso.elementosExtras.forEach(elemento => {
+                    let label = 'Relacionado a';
+                    if (elemento.tipo === 'pessoa') label = 'Envolvido em';
+                    else if (elemento.tipo === 'veiculo' || elemento.tipo === 'arma') label = 'Usado em';
+
+                    const from = elemento.tipo === 'pessoa' || elemento.tipo === 'veiculo' || elemento.tipo === 'arma' ? elemento.id : crime.id;
+                    const to = elemento.tipo === 'pessoa' || elemento.tipo === 'veiculo' || elemento.tipo === 'arma' ? crime.id : elemento.id;
+
+                    fallbackEdges.push({ from, to, label });
+                });
+            }
+            fallbackEdges.forEach(edge => addEdgeUnique(edge));
         }
 
         setTimeout(() => {
@@ -354,7 +344,9 @@ const GraphEngine = (function() {
         onManualEdgeAdded,
         onNodeClick,
         onEdgeClick,
-        onNodePositionChanged
+        onNodePositionChanged,
+        nodesDataset,
+        edgesDataset
     };
 })();
 

@@ -315,6 +315,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // Atualizar informações do elemento
         if (typeof CaseManager.onDataUpdated !== 'undefined') {
             CaseManager.onDataUpdated(async (updatedData) => {
+                // Se for uma conexão/edge
+                if (updatedData.id && updatedData.id.startsWith('rel_')) {
+                    try {
+                        const response = await fetch('/atualizar-conexao/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                from: updatedData.from,
+                                to: updatedData.to,
+                                label: updatedData.label
+                            })
+                        });
+                        const resData = await response.json();
+                        
+                        if (resData.success) {
+                            UI.showNotification('Conexão atualizada!', 'success');
+                            
+                            // Recarrega os casos e redesenha o grafo
+                            await carregarCasos();
+                            const caso = meusCasos[currentCaseIndex];
+                            if (caso && typeof GraphEngine !== 'undefined') {
+                                GraphEngine.renderGraphForCase(caso);
+                            }
+                        } else {
+                            UI.showNotification(resData.message || 'Erro ao atualizar conexão', 'error');
+                        }
+                    } catch (error) {
+                        UI.showNotification(`Erro na requisição: ${error.message}`, 'error');
+                    }
+                    return;
+                }
+
                 try {
                     const response = await fetch('/atualizar-elemento/', {
                         method: 'POST',
@@ -356,7 +388,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Remover elemento do caso
         if (typeof CaseManager.onRemoveElement !== 'undefined') {
-            CaseManager.onRemoveElement(async (elementId) => {
+            CaseManager.onRemoveElement(async (param) => {
+                // Se for um objeto com 'from' e 'to', é uma conexão!
+                if (param && typeof param === 'object' && param.from && param.to) {
+                    try {
+                        const response = await fetch('/remover-conexao/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                from: param.from,
+                                to: param.to
+                            })
+                        });
+                        const resData = await response.json();
+                        
+                        if (resData.success) {
+                            UI.showNotification('Conexão removida com sucesso!', 'success');
+                            if (typeof CaseManager.showInspector !== 'undefined') {
+                                CaseManager.showInspector(null);
+                            }
+                            
+                            // Recarrega os casos e redesenha o grafo
+                            await carregarCasos();
+                            const caso = meusCasos[currentCaseIndex];
+                            if (caso && typeof GraphEngine !== 'undefined') {
+                                GraphEngine.renderGraphForCase(caso);
+                            }
+                        } else {
+                            UI.showNotification(resData.message || 'Erro ao remover conexão', 'error');
+                        }
+                    } catch (error) {
+                        UI.showNotification(`Erro na requisição: ${error.message}`, 'error');
+                    }
+                    return;
+                }
+
+                const elementId = param;
                 // Se for o nó do Caso (ou outro principal), deleta o caso inteiro
                 if (elementId.startsWith('crime_') || elementId.startsWith('pessoa_') || elementId.startsWith('local_')) {
                     try {
@@ -447,6 +514,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (nodeData && typeof CaseManager !== 'undefined' && typeof CaseManager.showInspector !== 'undefined') {
                 CaseManager.showInspector(nodeData);
+            }
+        });
+
+        GraphEngine.onEdgeClick((edgeData) => {
+            if (!edgeData) {
+                if (typeof CaseManager !== 'undefined' && typeof CaseManager.showInspector !== 'undefined') {
+                    CaseManager.showInspector(null);
+                }
+                return;
+            }
+
+            if (typeof CaseManager !== 'undefined' && typeof CaseManager.showInspector !== 'undefined') {
+                CaseManager.showInspector(edgeData);
             }
         });
     }

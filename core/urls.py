@@ -14,5 +14,7 @@ urlpatterns = [
     path('remover-elemento/', views.remover_elemento, name='remover-elemento'),
     path('salvar-conexao-manual/', views.salvar_conexao_manual, name='salvar-conexao-manual'),
     path('deletar-caso/', views.deletar_caso, name='deletar-caso'),
+    path('atualizar-conexao/', views.atualizar_conexao, name='atualizar-conexao'),
+    path('remover-conexao/', views.remover_conexao, name='remover-conexao'),
 ]
 

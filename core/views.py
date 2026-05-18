@@ -83,13 +83,12 @@ def listar_casos(request):
         # Busca as conexões do Neo4j e nós do grafo para o policial atual
         manual_edges = []
         try:
-            # A query agora garante que apenas arestas cujos nós pertencem
+            # A query agora garante que apenas arestas seguras cujos nós pertencem
             # ao policial logado sejam listadas no grafo.
             query = """
-            MATCH (c:Crime {criado_por: $policial_logado})
-            MATCH (c)-[r]-(conectado)
-            WHERE conectado.criado_por = $policial_logado
-            RETURN c.id_elemento AS from, conectado.id_elemento AS to, type(r) AS label
+            MATCH (n1)-[r]->(n2)
+            WHERE n1.criado_por = $policial_logado AND n2.criado_por = $policial_logado
+            RETURN n1.id_elemento AS from, n2.id_elemento AS to, coalesce(r.tipo, type(r)) AS label
             """
             manual_edges = neo4j_db.run_query(query, {"policial_logado": policial_logado})
         except Exception as neo_err:
@@ -405,5 +404,57 @@ def deletar_caso(request):
             return JsonResponse({'success': True})
         except Exception as e:
             print(f"Erro ao deletar caso: {e}")
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)
+
+
+@csrf_exempt
+def atualizar_conexao(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            from_node = data.get('from')
+            to_node = data.get('to')
+            new_label = data.get('label')
+            
+            if not from_node or not to_node or not new_label:
+                return JsonResponse({'success': False, 'message': 'Parâmetros incompletos'}, status=400)
+
+            # Deletar o relacionamento antigo e criar um novo VINCULO com a nova label
+            query = """
+            MATCH (a {id_elemento: $from})-[r]-(b {id_elemento: $to})
+            DELETE r
+            WITH a, b
+            MERGE (a)-[new_r:VINCULO {tipo: $new_label}]->(b)
+            RETURN new_r
+            """
+            neo4j_db.run_query(query, {"from": from_node, "to": to_node, "new_label": new_label})
+            
+            return JsonResponse({'success': True, 'message': 'Conexão atualizada com sucesso!'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+    return JsonResponse({'success': False}, status=405)
+
+
+@csrf_exempt
+def remover_conexao(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            from_node = data.get('from')
+            to_node = data.get('to')
+            
+            if not from_node or not to_node:
+                return JsonResponse({'success': False, 'message': 'Parâmetros incompletos'}, status=400)
+
+            # Deletar o relacionamento no Neo4j
+            query = """
+            MATCH (a {id_elemento: $from})-[r]-(b {id_elemento: $to})
+            DELETE r
+            """
+            neo4j_db.run_query(query, {"from": from_node, "to": to_node})
+            
+            return JsonResponse({'success': True, 'message': 'Conexão removida com sucesso!'})
+        except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
     return JsonResponse({'success': False}, status=405)
